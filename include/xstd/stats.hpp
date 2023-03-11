@@ -248,8 +248,7 @@ class variance_accumulator
 
     constexpr auto value() -> T
     {
-        auto n = v1_ - ddof_;
-        return s2_ / n - (s1_ / n) * (s1_ / n);
+        return v1_ / (v1_ - ddof_) * (s2_ / v1_ - (s1_ / v1_) * (s1_ / v1_));
     }
 };
 
@@ -308,8 +307,8 @@ class standard_deviation_accumulator : public variance_accumulator<T>
     }
 };
 
-template<class T>
-class weighted_standard_deviation_accumulator : public weighted_variance_accumulator<T>
+template<class T, class W = T>
+class weighted_standard_deviation_accumulator : public weighted_variance_accumulator<T, W>
 {
   public:
     explicit constexpr weighted_standard_deviation_accumulator(stats_data_kind k) noexcept
@@ -359,7 +358,7 @@ constexpr auto geometric_mean(R&& r)
 }
 
 template<class R, class W>
-constexpr auto weighted_geometric_mean(R&& r, W&& w)
+constexpr auto geometric_mean(R&& r, W&& w)
 {
     return detail::get_stat<weighted_geometric_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
@@ -371,7 +370,7 @@ constexpr auto harmonic_mean(R&& r)
 }
 
 template<class R, class W>
-constexpr auto weighted_harmonic_mean(R&& r, W&& w)
+constexpr auto harmonic_mean(R&& r, W&& w)
 {
     return detail::get_stat<weighted_harmonic_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
@@ -389,9 +388,15 @@ constexpr auto variance(R&& r, range_value_t<R> ddof)
 }
 
 template<class R, class W>
-constexpr auto weighted_variance(R&& r, W&& w, stats_data_kind k)
+constexpr auto variance(R&& r, W&& w, stats_data_kind k)
 {
     return detail::get_stat<weighted_variance_accumulator>(forward<R>(r), forward<W>(w), k);
+}
+
+template<class R>
+constexpr auto standard_deviation(R&& r, stats_data_kind k)
+{
+    return detail::get_stat<standard_deviation_accumulator>(forward<R>(r), k);
 }
 
 template<class R>
@@ -401,7 +406,7 @@ constexpr auto standard_deviation(R&& r, range_value_t<R> ddof)
 }
 
 template<class R, class W>
-constexpr auto weighted_standard_deviation(R&& r, W&& w, stats_data_kind k)
+constexpr auto standard_deviation(R&& r, W&& w, stats_data_kind k)
 {
     return detail::get_stat<weighted_standard_deviation_accumulator>(forward<R>(r), forward<W>(w), k);
 }
