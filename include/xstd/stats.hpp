@@ -307,8 +307,8 @@ class standard_deviation_accumulator : public variance_accumulator<T>
     }
 };
 
-template<class T>
-class weighted_standard_deviation_accumulator : public weighted_variance_accumulator<T>
+template<class T, class W = T>
+class weighted_standard_deviation_accumulator : public weighted_variance_accumulator<T, W>
 {
   public:
     explicit constexpr weighted_standard_deviation_accumulator(stats_data_kind k) noexcept
