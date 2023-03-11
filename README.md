@@ -21,9 +21,11 @@ Features not implemented:
 - Parallel function overloads (execution policies)
 
 Furthermore:
+- This is a [single-header](./include/xstd/stats.hpp) library with no third-party dependency
 - To support C++17:
-    - Concepts and `requires` clauses are dropped
-- Add overload for `variance` (and `variance_accumulator` constructor) that accepts `stats_data_kind` as it is more intuitive and consistent
+    - Concepts and `requires` clauses are dropped; SFINAE is minimally used to disambiguate some overloads
+- Add overload for `variance` (and `variance_accumulator` constructor) that accepts `stats_data_kind`
+    - It is more intuitive and consistent (between the weighted and unweighted cases)
 
 
 # Example
@@ -45,6 +47,15 @@ xstd::stats_accumulate(values, acc_mean, acc_stdev);
 for (auto& x : values) {
     x = (x - acc_mean.value()) / acc_stdev.value();
 }
+```
+
+# Build and run tests
+
+```sh
+mkdir build && cd build
+cmake .. -DBUILD_TESTS=ON
+cmake --build . -j
+ctest -V
 ```
 
 # Contributing
