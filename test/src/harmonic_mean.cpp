@@ -17,7 +17,7 @@ void test_weighted_harmonic_mean()
 {
     std::array x{40.0, 60.0};
     std::array w{5.0, 30.0};
-    assert_almost_equal(weighted_harmonic_mean(x, w), 56.0);
+    assert_almost_equal(harmonic_mean(x, w), 56.0);
 }
 
 auto main() -> int
