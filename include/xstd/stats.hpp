@@ -50,10 +50,10 @@ template<class R1, class R2, class... Fn>
 inline void for_each_pack_2(R1&& r1, R2&& r2, Fn&&... fs)
 {
     // ranges::views::zip to the rescue
-    auto first1 = begin(r1);
-    auto last1 = end(r1);
-    auto first2 = begin(r2);
-    auto last2 = end(r2);
+    auto&& first1 = begin(r1);
+    auto&& last1 = end(r1);
+    auto&& first2 = begin(r2);
+    auto&& last2 = end(r2);
     for (; first1 != last1 && first2 != last2; ++first1, ++first2) {
         (fs(*first1, *first2), ...);
     }
@@ -160,7 +160,7 @@ class weighted_geometric_mean_accumulator
 
     constexpr auto value() -> T
     {
-        return pow(s1_, 1 / v1_);
+        return pow(s1_, T{1} / v1_);
     }
 };
 
@@ -211,7 +211,7 @@ class harmonic_mean_accumulator : public weighted_harmonic_mean_accumulator<T, T
     constexpr void operator()(const T& x)
     {
         this->v1_ += T{1};
-        this->s1_ += 1 / x;
+        this->s1_ += T{1} / x;
     }
 };
 
@@ -228,9 +228,9 @@ class variance_accumulator
     explicit constexpr variance_accumulator(stats_data_kind k) noexcept
     {
         if (k == stats_data_kind::population) {
-            ddof_ = 0;
+            ddof_ = T{0};
         } else {
-            ddof_ = 1;
+            ddof_ = T{1};
         }
     }
 
