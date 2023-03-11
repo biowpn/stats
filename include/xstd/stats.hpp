@@ -248,8 +248,7 @@ class variance_accumulator
 
     constexpr auto value() -> T
     {
-        auto n = v1_ - ddof_;
-        return s2_ / n - (s1_ / n) * (s1_ / n);
+        return v1_ / (v1_ - ddof_) * (s2_ / v1_ - (s1_ / v1_) * (s1_ / v1_));
     }
 };
 
