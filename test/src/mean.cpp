@@ -1,7 +1,7 @@
 
 #include <vector>
 
-#include <xstd/stats.hpp>
+#include <xstd/statistics.hpp>
 
 #include "assert_equal.hpp"
 

@@ -59,30 +59,78 @@ constexpr auto get_stat(R&& r, W&& w, Args&&... args)
 }  // namespace detail
 
 // data types
-enum class stats_data_kind
+
+enum class statistics_data_kind
 {
     population,
     sample,
 };
 
-enum class stats_skewness_kind
+enum class statistics_skewness_kind
 {
     adjusted,
     unadjusted,
 };
 
-enum class stats_kurtosis_kind
+enum class statistics_kurtosis_kind
 {
     excess,
     nonexcess,
 };
 
-// accumulator objects
+// 5.2 Accumulator Objects
 
 template<class T>
 class mean_accumulator;
 
 template<class T, class W = T>
+class weighted_mean_accumulator;
+
+template<class T>
+class geometric_mean_accumulator;
+
+template<class T, class W = T>
+class weighted_geometric_mean_accumulator;
+
+template<class T>
+class harmonic_mean_accumulator;
+
+template<class T, class W = T>
+class weighted_harmonic_mean_accumulator;
+
+template<class T>
+class variance_accumulator;
+
+template<class T, class W = T>
+class weighted_variance_accumulator;
+
+template<class T>
+class standard_deviation_accumulator;
+
+template<class T, class W = T>
+class weighted_standard_deviation_accumulator;
+
+// 5.2.1 Mean Accumulator Class Templates
+
+template<class T>
+class mean_accumulator : public weighted_mean_accumulator<T, T>
+{
+  public:
+    constexpr mean_accumulator() noexcept = default;
+
+    constexpr void operator()(const T& x)
+    {
+        this->v1_ += T{1};
+        this->s1_ += x;
+    }
+
+    constexpr T value()
+    {
+        return weighted_mean_accumulator<T, T>::value();
+    }
+};
+
+template<class T, class W>
 class weighted_mean_accumulator
 {
   protected:
@@ -90,7 +138,7 @@ class weighted_mean_accumulator
     T s1_{0};
 
   public:
-    explicit constexpr weighted_mean_accumulator() noexcept = default;
+    constexpr weighted_mean_accumulator() noexcept = default;
 
     constexpr void operator()(const T& x, const W& w)
     {
@@ -104,23 +152,26 @@ class weighted_mean_accumulator
     }
 };
 
+// 5.2.2 Geometric Mean Accumulator Class Templates
+
 template<class T>
-class mean_accumulator : public weighted_mean_accumulator<T, T>
+class geometric_mean_accumulator : public weighted_geometric_mean_accumulator<T, T>
 {
   public:
-    explicit constexpr mean_accumulator() noexcept = default;
+    constexpr geometric_mean_accumulator() noexcept = default;
 
     constexpr void operator()(const T& x)
     {
         this->v1_ += T{1};
-        this->s1_ += x;
+        this->s1_ *= x;
+    }
+    constexpr auto value() -> T
+    {
+        return weighted_geometric_mean_accumulator<T, T>::value();
     }
 };
 
-template<class T>
-class geometric_mean_accumulator;
-
-template<class T, class W = T>
+template<class T, class W>
 class weighted_geometric_mean_accumulator
 {
   protected:
@@ -128,7 +179,7 @@ class weighted_geometric_mean_accumulator
     T s1_{1};
 
   public:
-    explicit constexpr weighted_geometric_mean_accumulator() noexcept = default;
+    constexpr weighted_geometric_mean_accumulator() noexcept = default;
 
     constexpr void operator()(const T& x, const W& w)
     {
@@ -142,23 +193,27 @@ class weighted_geometric_mean_accumulator
     }
 };
 
+// 5.2.3 Harmonic Mean Accumulator Class Templates
+
 template<class T>
-class geometric_mean_accumulator : public weighted_geometric_mean_accumulator<T, T>
+class harmonic_mean_accumulator : public weighted_harmonic_mean_accumulator<T, T>
 {
   public:
-    explicit constexpr geometric_mean_accumulator() noexcept = default;
+    constexpr harmonic_mean_accumulator() noexcept = default;
 
     constexpr void operator()(const T& x)
     {
         this->v1_ += T{1};
-        this->s1_ *= x;
+        this->s1_ += T{1} / x;
+    }
+
+    constexpr auto value() -> T
+    {
+        return weighted_harmonic_mean_accumulator<T, T>::value();
     }
 };
 
-template<class T>
-class harmonic_mean_accumulator;
-
-template<class T, class W = T>
+template<class T, class W>
 class weighted_harmonic_mean_accumulator
 {
   protected:
@@ -166,7 +221,7 @@ class weighted_harmonic_mean_accumulator
     T s1_{0};
 
   public:
-    explicit constexpr weighted_harmonic_mean_accumulator() noexcept = default;
+    constexpr weighted_harmonic_mean_accumulator() noexcept = default;
 
     constexpr void operator()(const T& x, const W& w)
     {
@@ -180,18 +235,7 @@ class weighted_harmonic_mean_accumulator
     }
 };
 
-template<class T>
-class harmonic_mean_accumulator : public weighted_harmonic_mean_accumulator<T, T>
-{
-  public:
-    explicit constexpr harmonic_mean_accumulator() noexcept = default;
-
-    constexpr void operator()(const T& x)
-    {
-        this->v1_ += T{1};
-        this->s1_ += T{1} / x;
-    }
-};
+// 5.2.4 Variance Accumulator Class Templates
 
 template<class T>
 class variance_accumulator
@@ -203,16 +247,7 @@ class variance_accumulator
     T s2_{0};
 
   public:
-    explicit constexpr variance_accumulator(stats_data_kind k) noexcept
-    {
-        if (k == stats_data_kind::population) {
-            ddof_ = T{0};
-        } else {
-            ddof_ = T{1};
-        }
-    }
-
-    explicit constexpr variance_accumulator(T ddof) noexcept
+    constexpr variance_accumulator(T ddof) noexcept
     {
         ddof_ = ddof;
     }
@@ -230,18 +265,18 @@ class variance_accumulator
     }
 };
 
-template<class T, class W = T>
+template<class T, class W>
 class weighted_variance_accumulator
 {
   protected:
-    stats_data_kind data_kind_{};
+    statistics_data_kind data_kind_{};
     W v1_{0};
     W v2_{0};
     T s1_{0};
     T s2_{0};
 
   public:
-    explicit constexpr weighted_variance_accumulator(stats_data_kind k) noexcept
+    constexpr weighted_variance_accumulator(statistics_data_kind k) noexcept
     {
         data_kind_ = k;
     }
@@ -249,14 +284,14 @@ class weighted_variance_accumulator
     constexpr void operator()(const T& x, const W& w)
     {
         v1_ += w;
-        v2_ += w * w;  // overhead for population weighted variance
+        v2_ += w * w;  // N.B. overhead for population weighted variance
         s1_ += w * x;
         s2_ += w * x * x;
     }
 
     constexpr auto value() -> T
     {
-        if (data_kind_ == stats_data_kind::population) {
+        if (data_kind_ == statistics_data_kind::population) {
             return s2_ / v1_ - (s1_ / v1_) * (s1_ / v1_);
         } else {
             return v1_ / (v1_ * v1_ - v2_) * (s2_ - s1_ * (s1_ / v1_));
@@ -264,18 +299,20 @@ class weighted_variance_accumulator
     }
 };
 
+// 5.2.5 Standard Deviation Accumulator Class Templates
+
 template<class T>
 class standard_deviation_accumulator : public variance_accumulator<T>
 {
   public:
-    explicit constexpr standard_deviation_accumulator(stats_data_kind k) noexcept
-        : variance_accumulator<T>(k)
+    constexpr standard_deviation_accumulator(T ddof) noexcept
+        : variance_accumulator<T>(ddof)
     {
     }
 
-    explicit constexpr standard_deviation_accumulator(T ddof) noexcept
-        : variance_accumulator<T>(ddof)
+    constexpr void operator()(const T& x)
     {
+        return variance_accumulator<T>::operator()(x);
     }
 
     constexpr auto value() -> T
@@ -285,13 +322,18 @@ class standard_deviation_accumulator : public variance_accumulator<T>
     }
 };
 
-template<class T, class W = T>
+template<class T, class W>
 class weighted_standard_deviation_accumulator : public weighted_variance_accumulator<T, W>
 {
   public:
-    explicit constexpr weighted_standard_deviation_accumulator(stats_data_kind k) noexcept
+    constexpr weighted_standard_deviation_accumulator(statistics_data_kind k) noexcept
         : weighted_variance_accumulator<T>(k)
     {
+    }
+
+    constexpr void operator()(const T& x, const W& w)
+    {
+        return weighted_variance_accumulator<T, W>::operator()(x, w);
     }
 
     constexpr auto value() -> T
@@ -301,7 +343,7 @@ class weighted_standard_deviation_accumulator : public weighted_variance_accumul
     }
 };
 
-// accumulator objects accumulation functions
+// 5.2.8 Accumulator Objects Accumulation Functions
 
 template<ranges::input_range R, class... Accumulators>
 constexpr void stats_accumulate(R&& r, Accumulators&&... acc)
@@ -315,76 +357,74 @@ constexpr void stats_accumulate(R&& r, W&& w, Accumulators&&... acc)
     detail::for_each_pack_2(forward<R>(r), forward<W>(w), forward<Accumulators>(acc)...);
 }
 
-// free functions
+// 5.3 Freestanding Functions
+
+// 5.3.1 Freestanding Mean Functions
 
 template<ranges::input_range R>
-constexpr auto mean(R&& r)
+constexpr auto mean(R&& r) -> ranges::range_value_t<R>
 {
     return detail::get_stat<mean_accumulator>(forward<R>(r));
 }
 
 template<ranges::input_range R, ranges::input_range W>
-constexpr auto mean(R&& r, W&& w)
+constexpr auto mean(R&& r, W&& w) -> ranges::range_value_t<R>
 {
     return detail::get_stat<weighted_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
+// 5.3.2 Freestanding Geometric Mean Functions
+
 template<ranges::input_range R>
-constexpr auto geometric_mean(R&& r)
+constexpr auto geometric_mean(R&& r) -> ranges::range_value_t<R>
 {
     return detail::get_stat<geometric_mean_accumulator>(forward<R>(r));
 }
 
 template<ranges::input_range R, ranges::input_range W>
-constexpr auto geometric_mean(R&& r, W&& w)
+constexpr auto geometric_mean(R&& r, W&& w) -> ranges::range_value_t<R>
 {
     return detail::get_stat<weighted_geometric_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
+// 5.3.3 Freestanding Harmonic Mean Functions
+
 template<ranges::input_range R>
-constexpr auto harmonic_mean(R&& r)
+constexpr auto harmonic_mean(R&& r) -> ranges::range_value_t<R>
 {
     return detail::get_stat<harmonic_mean_accumulator>(forward<R>(r));
 }
 
 template<ranges::input_range R, ranges::input_range W>
-constexpr auto harmonic_mean(R&& r, W&& w)
+constexpr auto harmonic_mean(R&& r, W&& w) -> ranges::range_value_t<R>
 {
     return detail::get_stat<weighted_harmonic_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
-template<ranges::input_range R>
-constexpr auto variance(R&& r, stats_data_kind k)
-{
-    return detail::get_stat<variance_accumulator>(forward<R>(r), k);
-}
+// 5.3.4 Freestanding Variance Functions
 
 template<ranges::input_range R>
-constexpr auto variance(R&& r, ranges::range_value_t<R> ddof)
+constexpr auto variance(R&& r, ranges::range_value_t<R> ddof) -> ranges::range_value_t<R>
 {
     return detail::get_stat<variance_accumulator>(forward<R>(r), ddof);
 }
 
 template<ranges::input_range R, ranges::input_range W>
-constexpr auto variance(R&& r, W&& w, stats_data_kind k)
+constexpr auto variance(R&& r, W&& w, statistics_data_kind k) -> ranges::range_value_t<R>
 {
     return detail::get_stat<weighted_variance_accumulator>(forward<R>(r), forward<W>(w), k);
 }
 
-template<ranges::input_range R>
-constexpr auto standard_deviation(R&& r, stats_data_kind k)
-{
-    return detail::get_stat<standard_deviation_accumulator>(forward<R>(r), k);
-}
+// 5.3.5 Freestanding Standard Deviation Functions
 
 template<ranges::input_range R>
-constexpr auto standard_deviation(R&& r, ranges::range_value_t<R> ddof)
+constexpr auto standard_deviation(R&& r, ranges::range_value_t<R> ddof) -> ranges::range_value_t<R>
 {
     return detail::get_stat<standard_deviation_accumulator>(forward<R>(r), ddof);
 }
 
 template<ranges::input_range R, ranges::input_range W>
-constexpr auto standard_deviation(R&& r, W&& w, stats_data_kind k)
+constexpr auto standard_deviation(R&& r, W&& w, statistics_data_kind k) -> ranges::range_value_t<R>
 {
     return detail::get_stat<weighted_standard_deviation_accumulator>(forward<R>(r), forward<W>(w), k);
 }
