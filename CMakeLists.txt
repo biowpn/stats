@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(
     stats
-    VERSION 0.1.0
     DESCRIPTION "Basic Statistics"
 )
 
@@ -23,7 +22,7 @@ target_include_directories(
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
 )
 
-target_compile_features(stats_stats INTERFACE cxx_std_17)
+target_compile_features(stats_stats INTERFACE cxx_std_23)
 
 # ---- Install rules ----
 

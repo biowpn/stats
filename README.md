@@ -1,6 +1,6 @@
 # stats
 
-Basic Statistics for C++17 or later.
+Basic Statistics for C++.
 
 This project is a partial implementation of the paper:
 - [P1708R7 - Basic Statistics](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p1708r7.pdf)
@@ -12,25 +12,22 @@ Features implemented:
 - Variance (weighted/unweighted, population/sample)
 - Standard Deviation (weighted/unweighted, population/sample)
 - Accumulator Objects
-- Free-standing Accumulation Functions
+- Free Accumulation Functions
 - `stats_accumulate`
 
 Features not implemented:
 - Skewness (weighted/unweighted, population/sample)
 - Kurtosis (weighted/unweighted, population/sample, excess/non-excess)
-- Parallel function overloads (execution policies)
+- Parallel support (execution policies)
 
 Furthermore:
-- This is a [single-header](./include/xstd/stats.hpp) library with no third-party dependency
-- To support C++17:
-    - Concepts and `requires` clauses are dropped; SFINAE is minimally used to disambiguate some overloads
-- Add overload for `variance` (and `variance_accumulator` constructor) that accepts `stats_data_kind`
+- This implementation adds constructors that accept `stats_data_kind` for `variance` and `variance_accumulator`
     - It is more intuitive and consistent (between the weighted and unweighted cases)
 
 
 # Example
 
-Use free-standing functions to compute a statistic of an input range:
+Use free functions to compute a statistic of an input range:
 
 ```cpp
 auto values = std::array{1.0, 2.0, 3.0, 4.0, 5.0};

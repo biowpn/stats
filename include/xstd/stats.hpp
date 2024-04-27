@@ -4,42 +4,25 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <ranges>
 #include <type_traits>
 
 namespace xstd
 {
 
-using std::begin;
-using std::declval;
-using std::end;
+namespace ranges = std::ranges;
+namespace views = ranges::views;
+
 using std::forward;
-using std::iterator_traits;
-using std::remove_cv_t;
-using std::remove_reference_t;
-using std::void_t;
 
 using std::pow;
 using std::sqrt;
-
-/* borrowed from future versions of C++ */
-
-template<class T>
-using remove_cvref_t = remove_cv_t<remove_reference_t<T>>;
-
-template<class T>
-using iterator_t = decltype(begin(declval<T&>()));
-
-template<class T>
-using iter_value_t = typename iterator_traits<remove_cvref_t<T>>::value_type;
-
-template<class R>
-using range_value_t = iter_value_t<iterator_t<R>>;
 
 namespace detail
 {
 
 template<class R1, class... Fn>
-inline void for_each_pack_1(R1&& r1, Fn&&... fs)
+constexpr void for_each_pack_1(R1&& r1, Fn&&... fs)
 {
     for (auto&& x1 : r1) {
         (fs(x1), ...);
@@ -47,32 +30,27 @@ inline void for_each_pack_1(R1&& r1, Fn&&... fs)
 }
 
 template<class R1, class R2, class... Fn>
-inline void for_each_pack_2(R1&& r1, R2&& r2, Fn&&... fs)
+constexpr void for_each_pack_2(R1&& r1, R2&& r2, Fn&&... fs)
 {
-    // ranges::views::zip to the rescue
-    auto&& first1 = begin(r1);
-    auto&& last1 = end(r1);
-    auto&& first2 = begin(r2);
-    auto&& last2 = end(r2);
-    for (; first1 != last1 && first2 != last2; ++first1, ++first2) {
-        (fs(*first1, *first2), ...);
+    for (auto&& [x1, x2] : views::zip(r1, r2)) {
+        (fs(x1, x2), ...);
     }
 }
 
 template<template<class T> class S, class R, class... Args>
-inline auto get_stat(R&& r, Args&&... args)
+constexpr auto get_stat(R&& r, Args&&... args)
 {
-    using T = range_value_t<R>;
+    using T = ranges::range_value_t<R>;
     S<T> s{forward<Args>(args)...};
     for_each_pack_1(forward<R>(r), s);
     return s.value();
 }
 
 template<template<class T, class U> class S, class R, class W, class... Args>
-inline auto get_stat(R&& r, W&& w, Args&&... args)
+constexpr auto get_stat(R&& r, W&& w, Args&&... args)
 {
-    using T = range_value_t<R>;
-    using U = range_value_t<W>;
+    using T = ranges::range_value_t<R>;
+    using U = ranges::range_value_t<W>;
     S<T, U> s{forward<Args>(args)...};
     for_each_pack_2(forward<R>(r), forward<W>(w), s);
     return s.value();
@@ -325,87 +303,87 @@ class weighted_standard_deviation_accumulator : public weighted_variance_accumul
 
 // accumulator objects accumulation functions
 
-template<class R, class... Accumulators>
-constexpr void_t<iterator_t<R>> stats_accumulate(R&& r, Accumulators&&... acc)
+template<ranges::input_range R, class... Accumulators>
+constexpr void stats_accumulate(R&& r, Accumulators&&... acc)
 {
     detail::for_each_pack_1(forward<R>(r), forward<Accumulators>(acc)...);
 }
 
-template<class R, class W, class... Accumulators>
-constexpr void_t<iterator_t<R>, iterator_t<W>> stats_accumulate(R&& r, W&& w, Accumulators&&... acc)
+template<ranges::input_range R, ranges::input_range W, class... Accumulators>
+constexpr void stats_accumulate(R&& r, W&& w, Accumulators&&... acc)
 {
     detail::for_each_pack_2(forward<R>(r), forward<W>(w), forward<Accumulators>(acc)...);
 }
 
-// freestanding functions
+// free functions
 
-template<class R>
+template<ranges::input_range R>
 constexpr auto mean(R&& r)
 {
     return detail::get_stat<mean_accumulator>(forward<R>(r));
 }
 
-template<class R, class W>
+template<ranges::input_range R, ranges::input_range W>
 constexpr auto mean(R&& r, W&& w)
 {
     return detail::get_stat<weighted_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
-template<class R>
+template<ranges::input_range R>
 constexpr auto geometric_mean(R&& r)
 {
     return detail::get_stat<geometric_mean_accumulator>(forward<R>(r));
 }
 
-template<class R, class W>
+template<ranges::input_range R, ranges::input_range W>
 constexpr auto geometric_mean(R&& r, W&& w)
 {
     return detail::get_stat<weighted_geometric_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
-template<class R>
+template<ranges::input_range R>
 constexpr auto harmonic_mean(R&& r)
 {
     return detail::get_stat<harmonic_mean_accumulator>(forward<R>(r));
 }
 
-template<class R, class W>
+template<ranges::input_range R, ranges::input_range W>
 constexpr auto harmonic_mean(R&& r, W&& w)
 {
     return detail::get_stat<weighted_harmonic_mean_accumulator>(forward<R>(r), forward<W>(w));
 }
 
-template<class R>
+template<ranges::input_range R>
 constexpr auto variance(R&& r, stats_data_kind k)
 {
     return detail::get_stat<variance_accumulator>(forward<R>(r), k);
 }
 
-template<class R>
-constexpr auto variance(R&& r, range_value_t<R> ddof)
+template<ranges::input_range R>
+constexpr auto variance(R&& r, ranges::range_value_t<R> ddof)
 {
     return detail::get_stat<variance_accumulator>(forward<R>(r), ddof);
 }
 
-template<class R, class W>
+template<ranges::input_range R, ranges::input_range W>
 constexpr auto variance(R&& r, W&& w, stats_data_kind k)
 {
     return detail::get_stat<weighted_variance_accumulator>(forward<R>(r), forward<W>(w), k);
 }
 
-template<class R>
+template<ranges::input_range R>
 constexpr auto standard_deviation(R&& r, stats_data_kind k)
 {
     return detail::get_stat<standard_deviation_accumulator>(forward<R>(r), k);
 }
 
-template<class R>
-constexpr auto standard_deviation(R&& r, range_value_t<R> ddof)
+template<ranges::input_range R>
+constexpr auto standard_deviation(R&& r, ranges::range_value_t<R> ddof)
 {
     return detail::get_stat<standard_deviation_accumulator>(forward<R>(r), ddof);
 }
 
-template<class R, class W>
+template<ranges::input_range R, ranges::input_range W>
 constexpr auto standard_deviation(R&& r, W&& w, stats_data_kind k)
 {
     return detail::get_stat<weighted_standard_deviation_accumulator>(forward<R>(r), forward<W>(w), k);
